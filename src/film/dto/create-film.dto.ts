@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNumber, IsString, ValidateNested } from 'class-validator';
-import { ChracterDto } from './chracter.dto';
-import { PlanetDto } from './planet.dto';
-import { StarShipDto } from './starship.dto';
-import { VehicleDto } from './vehicle.dto';
-import { SpecieDto } from './specie.dto';
+import { ArrayMinSize, arrayMinSize, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { Chracter } from 'src/entities/Chracter.entity';
+import { Starship } from 'src/entities/starship.entity';
+import { Vehicle } from 'src/entities/vehicle.entity';
+import { Specie } from 'src/entities/specie.entity';
+import { Planet } from 'src/entities/planet.entity';
 
 export class CreateFilmDto {
   @ApiProperty()
@@ -34,28 +34,33 @@ export class CreateFilmDto {
 
   @ApiProperty()
   @ValidateNested({ each: true })
-  @Type(() => ChracterDto)
-  chracter: ChracterDto[];
+  @Type(() => Chracter)
+  @ArrayMinSize(1)
+  chracters: Chracter[];
 
   @ApiProperty()
   @ValidateNested({ each: true })
-  @Type(() => PlanetDto)
-  planet: PlanetDto[];
+  @Type(() => Planet)
+  @ArrayMinSize(1)
+  planets: Planet[];
 
   @ApiProperty()
   @ValidateNested({ each: true })
-  @Type(() => StarShipDto)
-  starship: StarShipDto[];
+  @Type(() => Starship)
+  @ArrayMinSize(1)
+  starships: Starship[];
 
   @ApiProperty()
   @ValidateNested({ each: true })
-  @Type(() => VehicleDto)
-  vehicle: VehicleDto[];
+  @Type(() => Vehicle)
+  @ArrayMinSize(1)
+  vehicles: Vehicle[];
 
   @ApiProperty()
   @ValidateNested({ each: true })
-  @Type(() => SpecieDto)
-  specie: SpecieDto[];
+  @Type(() => Specie)
+  @ArrayMinSize(1)
+  species: Specie[];
 
   @ApiProperty()
   @IsString()

@@ -13,8 +13,6 @@ export class RolesGuard implements CanActivate {
     if (!token) {
       return false;
     }
-    console.log('Estoy en la validacion del role');
-
     const payload = this.jwtService.decode(token) as any;
     const roles = this.reflector.get<string[]>('roles', context.getHandler());
 

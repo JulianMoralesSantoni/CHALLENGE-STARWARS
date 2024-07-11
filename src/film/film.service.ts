@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateFilmDto } from './dto/create-film.dto';
@@ -10,12 +11,12 @@ import { UpdateFilmDto } from './dto/update-film.dto';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Film } from 'src/entities/film.entity';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { FilmChrater } from 'src/entities/filmChracter.entity';
 import { Chracter } from 'src/entities/Chracter.entity';
-import { Planet } from 'src/entities/planets.entity';
+import { Planet } from 'src/entities/planet.entity';
 import { FilmPlanet } from 'src/entities/filmPlanet.entity';
 import { Specie } from 'src/entities/specie.entity';
 import { FilmSpecie } from 'src/entities/filmSpecie.entity';
@@ -24,7 +25,6 @@ import { FilmStarShip } from 'src/entities/filmStarship.entity';
 import { Vehicle } from 'src/entities/vehicle.entity';
 import { FilmVehicle } from 'src/entities/filmVehicle.entity';
 
-
 @Injectable()
 export class FilmService {
   constructor(
@@ -32,9 +32,11 @@ export class FilmService {
     private filmRepository: Repository<Film>,
     private readonly httpService: HttpService,
     private configService: ConfigService,
+    @InjectEntityManager()
+    private entityManager: EntityManager,
   ) {}
   async create(createFilmDto: CreateFilmDto) {
-    const { chracter, specie, vehicle, planet, starship, ...restOfDto } =
+    const { chracters, species, vehicles, planets, starships, ...restOfDto } =
       createFilmDto;
 
     let FilmCreated = new Film();
@@ -51,80 +53,81 @@ export class FilmService {
         );
 
       let filmToCreate = this.filmRepository.create(restOfDto);
-      filmToCreate.film_chracter = [];
+      filmToCreate.film_chracters = [];
 
-      for (const people of chracter) {
+      for (const people of chracters) {
         const chracterObject = new Chracter();
-        chracterObject.url_character = people.url_chracter;
-        chracterObject.id_character = people.id_chracter;
+        chracterObject.url_chracter = people.url_chracter;
+        chracterObject.id_chracter = people.id_chracter;
 
         const filmCharacter = new FilmChrater();
         filmCharacter.star_date = new Date();
-        filmCharacter.chracter = chracterObject;
+        filmCharacter.chracters = chracterObject;
 
-        filmToCreate.film_chracter.push(filmCharacter);
+        filmToCreate.film_chracters.push(filmCharacter);
       }
 
-      filmToCreate.film_planet = [];
+      filmToCreate.film_planets = [];
 
-      for (const plnet of planet) {
+      for (const plnet of planets) {
         const planetObject = new Planet();
         planetObject.url_planet = plnet.url_planet;
         planetObject.id_planet = plnet.id_planet;
 
         const filmPlanet = new FilmPlanet();
         filmPlanet.star_date = new Date();
-        filmPlanet.planet = planetObject;
+        filmPlanet.planets = planetObject;
 
-        filmToCreate.film_planet.push(filmPlanet);
+        filmToCreate.film_planets.push(filmPlanet);
       }
 
-      filmToCreate.film_specie = [];
+      filmToCreate.film_species = [];
 
-      for (const spcie of specie) {
+      for (const specie of species) {
         const specieObject = new Specie();
-        specieObject.url_specie = spcie.url_specie;
-        specieObject.id_specie = spcie.id_specie;
+        specieObject.url_specie = specie.url_specie;
+        specieObject.id_specie = specie.id_specie;
 
         const filmSpecie = new FilmSpecie();
         filmSpecie.star_date = new Date();
-        filmSpecie.specie = specieObject;
+        filmSpecie.species = specieObject;
 
-        filmToCreate.film_specie.push(filmSpecie);
+        filmToCreate.film_species.push(filmSpecie);
       }
 
-      filmToCreate.film_starship = [];
+      filmToCreate.film_starships = [];
 
-      for (const strship of starship) {
+      for (const strship of starships) {
         const starshipObject = new Starship();
         starshipObject.url_starship = strship.url_starship;
         starshipObject.id_starship = strship.id_starship;
 
         const filmStarShip = new FilmStarShip();
         filmStarShip.star_date = new Date();
-        filmStarShip.starship = starshipObject;
+        filmStarShip.starships = starshipObject;
 
-        filmToCreate.film_starship.push(filmStarShip);
+        filmToCreate.film_starships.push(filmStarShip);
       }
 
-      filmToCreate.film_vehicle = [];
+      filmToCreate.film_vehicles = [];
 
-      for (const vhicle of vehicle) {
+      for (const vhicle of vehicles) {
         const vehicleObject = new Vehicle();
         vehicleObject.url_vehicle = vhicle.url_vehicle;
         vehicleObject.id_vehicle = vhicle.id_vehicle;
 
         const filmVehicle = new FilmVehicle();
         filmVehicle.star_date = new Date();
-        filmVehicle.vehicle = vehicleObject;
+        filmVehicle.vehicles = vehicleObject;
 
-        filmToCreate.film_vehicle.push(filmVehicle);
+        filmToCreate.film_vehicles.push(filmVehicle);
       }
-      console.log('Estes el filmEstarchip');
 
-      console.log(filmToCreate);
-
-      FilmCreated = await this.filmRepository.save(filmToCreate);
+      await this.entityManager.transaction(
+        async (transactionalEntityManager) => {
+          FilmCreated = await transactionalEntityManager.save(filmToCreate);
+        },
+      );
 
       return FilmCreated;
     } catch (error) {
@@ -141,13 +144,56 @@ export class FilmService {
     }
   }
 
-  async findAll() {
-    const films = (
-      await lastValueFrom(
-        this.httpService.get(this.configService.get('APISTARWARS')),
-      )
-    ).data.results;
-    return films;
+  async findAllApiIntegration() {
+    try {
+      const films = (
+        await lastValueFrom(
+          this.httpService.get(this.configService.get('APISTARWARS')),
+        )
+      ).data.results;
+      return films;
+    } catch (error) {
+      throw new InternalServerErrorException('Ocurrio un error al comunicarse con la api de Starwars')
+    }
+  }
+
+  async sincronization(){
+    
+  }
+
+  async findAllToDataBase() {
+    try {
+      const film = await this.filmRepository
+        .createQueryBuilder('film')
+        .select([
+          'film.id_film',
+          'film.title',
+          'film.episode_id',
+          'film.opening_crawl',
+          'film.director',
+          'film.producer',
+          'film.release_date',
+          'film.created',
+          'film.edited',
+          'film.url',
+          'film.end_date',
+        ])
+        .where('film.end_date IS NULL')
+        .getMany();
+
+      return film;
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        {
+          cause: error.message,
+        },
+      );
+    }
   }
 
   async findOne(id: number) {
@@ -176,13 +222,13 @@ export class FilmService {
           'film.url',
           'film.end_date',
         ])
-        // chracter information
+        // s information
         .addSelect([
           'filmChracter.id_film_chracter',
           'filmChracter.star_date',
           'filmChracter.end_date',
         ])
-        .addSelect(['chracter.id_character', 'chracter.url_character'])
+        .addSelect(['chracter.id_chracter', 'chracter.url_chracter'])
         /// planet information
         .addSelect([
           'filmPlanet.id_film_planet',
@@ -211,16 +257,16 @@ export class FilmService {
           'filmSpecie.end_date',
         ])
         .addSelect(['specie.id_specie', 'specie.url_specie'])
-        .leftJoin('film.film_chracter', 'filmChracter')
-        .leftJoin('film.film_planet', 'filmPlanet')
-        .leftJoin('film.film_starship', 'filmStarShip')
-        .leftJoin('film.film_vehicle', 'filmVehicle')
-        .leftJoin('film.film_specie', 'filmSpecie')
-        .leftJoin('filmChracter.chracter', 'chracter')
-        .leftJoin('filmPlanet.planet', 'planet')
-        .leftJoin('filmStarShip.starship', 'starship')
-        .leftJoin('filmVehicle.vehicle', 'vehicle')
-        .leftJoin('filmSpecie.specie', 'specie')
+        .leftJoin('film.film_chracters', 'filmChracter')
+        .leftJoin('film.film_planets', 'filmPlanet')
+        .leftJoin('film.film_starships', 'filmStarShip')
+        .leftJoin('film.film_vehicles', 'filmVehicle')
+        .leftJoin('film.film_species', 'filmSpecie')
+        .leftJoin('filmChracter.chracters', 'chracter')
+        .leftJoin('filmPlanet.planets', 'planet')
+        .leftJoin('filmStarShip.starships', 'starship')
+        .leftJoin('filmVehicle.vehicles', 'vehicle')
+        .leftJoin('filmSpecie.species', 'specie')
         .where('film.id_film = :id', { id })
         .getOne();
 
@@ -239,82 +285,241 @@ export class FilmService {
     }
   }
 
-  async update(id: number, updateFilmDto: UpdateFilmDto) {
-    const { chracter, specie, vehicle, planet, starship, ...restOfDto } =
-      updateFilmDto;
 
+
+  async update(updateFilmDto: UpdateFilmDto, sincronization?: boolean) {
     try {
-      let film = await this.findOneToDataBase(id);
+      const { chracters, species, vehicles, planets, starships } =
+        updateFilmDto;
 
-      if (!film)
+      let filmToBrowse = await this.findOneToDataBase(updateFilmDto.id_film);
+
+      if (!filmToBrowse)
         throw new NotFoundException(
-          `Ya existe una pelicula correpondiente al episodio ${updateFilmDto.episode_id}`,
+          `No existe una pelicula correpondiente al siguiente id: ${updateFilmDto.id_film}`,
         );
 
-      let filmToUpdate = this.filmRepository.create(restOfDto);
+      let filmToUpdate = this.filmRepository.create(filmToBrowse);
 
-      // for (const chracter of film_chracter) {
-      //   const chracterObject = new Chracter();
-      //   chracterObject.url_character = chracter.url_chracter;
-      //   chracterObject.id_character = chracter.id_chracter;
+      //Tratamiento de chracters
 
-      //   const filmCharacter = new FilmChrater();
-      //   filmCharacter.star_date = new Date();
-      //   filmCharacter.chracter = chracterObject;
+      const newChracter = chracters.filter(
+        (chracterDTO) =>
+          !filmToUpdate.film_chracters.some(
+            (chracterDB) =>
+              chracterDB.chracters.id_chracter === chracterDTO.id_chracter,
+          ),
+      );
 
-      //   filmToUpdate.film_chracter.push(filmCharacter);
-      // }
+      newChracter.forEach((element) => {
+        const chracterObject = new Chracter();
+        chracterObject.url_chracter = element.url_chracter;
+        chracterObject.id_chracter = element.id_chracter;
 
-      // for (const planet of film_planet) {
-      //   const planetObject = new Planet();
-      //   planetObject.url_planet = planet.url_planet;
-      //   planetObject.id_planet = planet.id_planet;
+        const filmCharacter = new FilmChrater();
+        filmCharacter.star_date = new Date();
+        filmCharacter.chracters = chracterObject;
 
-      //   const filmPlanet = new FilmPlanet();
-      //   filmPlanet.star_date = new Date();
-      //   filmPlanet.planet = planetObject;
+        filmToUpdate.film_chracters.push(filmCharacter);
+      });
 
-      //   filmToCreate.film_planet.push(filmPlanet);
-      // }
+      const obsoleteChracters = filmToUpdate.film_chracters.filter(
+        (chracterDB) =>
+          !chracters.some(
+            (chracterDTO) =>
+              chracterDTO.id_chracter === chracterDB.chracters.id_chracter,
+          ),
+      );
+      if (obsoleteChracters) {
+        filmToUpdate.film_chracters.forEach((element) => {
+          if (
+            obsoleteChracters.find(
+              (obsoleteChracter) =>
+                obsoleteChracter.chracters.id_chracter ==
+                element.chracters.id_chracter,
+            )
+          ) {
+            element.end_date = new Date();
+          }
+        });
+      }
+      console.log('Estos son los objetos');
 
-      // for (const specie of film_specie) {
-      //   const specieObject = new Specie();
-      //   specieObject.url_specie = specie.url_specie;
-      //   specieObject.id_specie = specie.id_specie;
+      console.log(filmToUpdate.film_chracters);
 
-      //   const filmSpecie = new FilmSpecie();
-      //   filmSpecie.star_date = new Date();
-      //   filmSpecie.specie = specieObject;
+      //Tratamiento de planet
 
-      //   filmToCreate.film_specie.push(filmSpecie);
-      // }
+      const newPlanets = planets.filter(
+        (planetsDTO) =>
+          !filmToUpdate.film_planets.some(
+            (planetDB) => planetDB.planets.id_planet === planetsDTO.id_planet,
+          ),
+      );
 
-      // for (const starship of film_starship) {
-      //   const starshipObject = new Starship();
-      //   starshipObject.url_starship = starship.url_starship;
-      //   starshipObject.id_starship = starship.id_starship;
+      newPlanets.forEach((element) => {
+        const planetObject = new Planet();
+        planetObject.url_planet = element.url_planet;
+        planetObject.id_planet = element.id_planet;
 
-      //   const filmStarShip = new FilmStarShip();
-      //   filmStarShip.star_date = new Date();
-      //   filmStarShip.starship = starshipObject;
+        const filmPlanet = new FilmPlanet();
+        filmPlanet.star_date = new Date();
+        filmPlanet.planets = planetObject;
 
-      //   filmToCreate.film_starship.push(filmStarShip);
-      // }
+        filmToUpdate.film_planets.push(filmPlanet);
+      });
 
-      // for (const vehicle of film_vehicle) {
-      //   const vehicleObject = new Vehicle();
-      //   vehicleObject.url_vehicle = vehicle.url_vehicle;
-      //   vehicleObject.id_vehicle = vehicle.id_vehicle;
+      const obsoletePlanets = filmToUpdate.film_planets.filter(
+        (planetDB) =>
+          !planets.some(
+            (planetDTO) => planetDTO.id_planet === planetDB.planets.id_planet,
+          ),
+      );
+      if (obsoletePlanets) {
+        filmToUpdate.film_planets.forEach((element) => {
+          if (
+            obsoletePlanets.find(
+              (obsoletePlanets) =>
+                obsoletePlanets.planets.id_planet == element.planets.id_planet,
+            )
+          ) {
+            element.end_date = new Date();
+          }
+        });
+      }
 
-      //   const filmVehicle = new FilmVehicle();
-      //   filmVehicle.star_date = new Date();
-      //   filmVehicle.vehicle = vehicleObject;
+      //TratamientoSpecie
 
-      //   filmToCreate.film_vehicle.push(filmVehicle);
-      // }
-      // FilmCreated = await this.filmRepository.save(filmToCreate);
+      const newSpecie = species.filter(
+        (specieDTO) =>
+          !filmToUpdate.film_species.some(
+            (specieDB) => specieDB.species.id_specie === specieDTO.id_specie,
+          ),
+      );
 
-      // return FilmCreated;
+      newSpecie.forEach((element) => {
+        const specieObject = new Specie();
+        specieObject.url_specie = element.url_specie;
+        specieObject.id_specie = element.id_specie;
+
+        const filmSpecie = new FilmSpecie();
+        filmSpecie.star_date = new Date();
+        filmSpecie.species = specieObject;
+
+        filmToUpdate.film_species.push(filmSpecie);
+      });
+
+      const obsoleteSpecies = filmToUpdate.film_species.filter(
+        (specieDB) =>
+          !species.some(
+            (specieDTO) => specieDTO.id_specie === specieDB.species.id_specie,
+          ),
+      );
+      if (obsoleteSpecies) {
+        filmToUpdate.film_species.forEach((element) => {
+          if (
+            obsoleteSpecies.find(
+              (obsoleteSpecie) =>
+                obsoleteSpecie.species.id_specie == element.species.id_specie,
+            )
+          ) {
+            element.end_date = new Date();
+          }
+        });
+      }
+
+      // Tratamiento de starships
+
+      const newStarShip = starships.filter(
+        (starshipDTO) =>
+          !filmToUpdate.film_starships.some(
+            (starshipDB) =>
+              starshipDB.starships.id_starship === starshipDTO.id_starship,
+          ),
+      );
+
+      newStarShip.forEach((element) => {
+        const starshipObject = new Starship();
+        starshipObject.url_starship = element.url_starship;
+        starshipObject.id_starship = element.id_starship;
+
+        const filmStarship = new FilmStarShip();
+        filmStarship.star_date = new Date();
+        filmStarship.starships = starshipObject;
+
+        filmToUpdate.film_starships.push(filmStarship);
+      });
+
+      const obsoleteStarship = filmToUpdate.film_starships.filter(
+        (starshipDB) =>
+          !starships.some(
+            (starshipDTO) =>
+              starshipDTO.id_starship === starshipDB.starships.id_starship,
+          ),
+      );
+      if (obsoleteStarship) {
+        filmToUpdate.film_starships.forEach((element) => {
+          if (
+            obsoleteStarship.find(
+              (obsoleteStarship) =>
+                obsoleteStarship.starships.id_starship ==
+                element.starships.id_starship,
+            )
+          ) {
+            element.end_date = new Date();
+          }
+        });
+      }
+
+      // Tratamiento de vehiculo
+
+      const newVehicle = vehicles.filter(
+        (vehicleDTO) =>
+          !filmToUpdate.film_vehicles.some(
+            (vehicleDB) =>
+              vehicleDB.vehicles.id_vehicle === vehicleDTO.id_vehicle,
+          ),
+      );
+
+      newVehicle.forEach((element) => {
+        const vehicleObject = new Vehicle();
+        vehicleObject.url_vehicle = element.url_vehicle;
+        vehicleObject.id_vehicle = element.id_vehicle;
+
+        const filmStarship = new FilmVehicle();
+        filmStarship.star_date = new Date();
+        filmStarship.vehicles = vehicleObject;
+
+        filmToUpdate.film_vehicles.push(filmStarship);
+      });
+
+      const obsoleteVehicle = filmToUpdate.film_vehicles.filter(
+        (vehicleDB) =>
+          !vehicles.some(
+            (vehicleDTO) =>
+              vehicleDTO.id_vehicle === vehicleDB.vehicles.id_vehicle,
+          ),
+      );
+      if (obsoleteVehicle) {
+        filmToUpdate.film_vehicles.forEach((element) => {
+          if (
+            obsoleteVehicle.find(
+              (obsoleteVehicle) =>
+                obsoleteVehicle.vehicles.id_vehicle ==
+                element.vehicles.id_vehicle,
+            )
+          ) {
+            element.end_date = new Date();
+          }
+        });
+      }
+
+      await this.entityManager.transaction(
+        async (transactionalEntityManager) => {
+          await transactionalEntityManager.save(filmToUpdate);
+        },
+      );
+
+      return filmToUpdate;
     } catch (error) {
       throw new HttpException(
         {
@@ -329,7 +534,28 @@ export class FilmService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} film`;
+  async remove(id_film: number) {
+    try {
+      const filmToDelete = await this.filmRepository.findOne({
+        where: {
+          id_film: id_film,
+        },
+      });
+      if (!filmToDelete)
+        throw new NotFoundException(`No existe la pelicula con ${id_film}`);
+      if (filmToDelete.end_date)
+        throw new BadRequestException(
+          'La pelicula ya se ecunetra dada de baja',
+        );
+
+      filmToDelete.end_date = new Date();
+      await this.entityManager.transaction(
+        async (transactionalEntityManager) => {
+          await transactionalEntityManager.save(filmToDelete);
+        },
+      );
+
+      return `Se borro la pelicula ${filmToDelete.title}`;
+    } catch (error) {}
   }
 }
