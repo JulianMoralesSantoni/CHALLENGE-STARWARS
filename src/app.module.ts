@@ -3,11 +3,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { User } from './entities/user.entity';
-import { UserType } from './entities/userType.entity';
-import { Access } from './entities/access.entity';
-import { Token } from './entities/token.entity';
 import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
+import { FilmModule } from './film/film.module';
 
 @Module({
   imports: [
@@ -23,11 +21,11 @@ import { UserModule } from './user/user.module';
         username: configService.get<string>('DATABASE_USERNAME'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        entities: [User, UserType, Access, Token],
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
         autoLoadEntities: true,
         synchronize: false,
       }),
-    }), UserModule
+    }), UserModule, AuthModule, FilmModule
   ],
   controllers: [AppController],
   providers: [AppService],

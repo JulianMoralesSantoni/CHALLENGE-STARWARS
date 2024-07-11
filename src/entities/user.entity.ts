@@ -13,6 +13,8 @@ export class User {
   user_created_date:Date;
   @Column({ name: 'user_name', type: 'varchar' })
   user_name:string;
+  @Column({ name: 'password', type: 'varchar' })
+  password:string;
   @ManyToOne(() => UserType, (userType) => userType.user)
   userType:UserType;
 
@@ -20,5 +22,7 @@ export class User {
     updateDates() {
         this.user_created_date = new Date()
     }
+
+    
 }
 

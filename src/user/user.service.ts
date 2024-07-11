@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -20,10 +21,12 @@ export class UserService {
     let userCreated = new User();
     let errorSearch = '';
     try {
-      const user = await this.findUserByEmail(createUserDto.user_email);
-      if (user) {
-        errorSearch = `Ya existe un usuario con email ${user.user_email}`;
-        new Error();
+      const users = await this.findUserByEmail(createUserDto.user_email);
+      const userFound = users.find((user) => user.user_email == createUserDto.user_email)
+      console.log(userFound);
+      
+      if (userFound) {
+        throw new BadRequestException(`Ya existe un usuario con email ${userFound.user_email}`);
       }
       userCreated = this.userRepositorio.create(createUserDto);
       userCreated = await this.userRepositorio.save(userCreated);
@@ -43,14 +46,22 @@ export class UserService {
   }
 
   async findUserByEmail(email: string) {
-    const user = await this.userRepositorio.findOneBy({
-      user_email: email,
-    });
+    const user = await this.userRepositorio.find({
+      relations: {
+          userType: true,
+      },
+      where: {
+          user_email: email
+      },
+  })
     return user;
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll() {
+    const users = await this.userRepositorio.find({relations:{userType:true}})
+    console.log('Estos son los users');
+    console.log(users);
+    return users;
   }
 
   findOne(id: number) {
