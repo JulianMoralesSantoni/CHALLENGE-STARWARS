@@ -3,12 +3,10 @@ import { FilmService } from './film.service';
 import { FilmController } from './film.controller';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Film } from 'src/entities/film.entity';
+import { Article } from '../entities/article.entity';
 
 @Module({
-  imports:[HttpModule,
-    TypeOrmModule.forFeature([Film])
-  ],
+  imports: [HttpModule, TypeOrmModule.forFeature([Article])],
   controllers: [FilmController],
   providers: [FilmService],
 })

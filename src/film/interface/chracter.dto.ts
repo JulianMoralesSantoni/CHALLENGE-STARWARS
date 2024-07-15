@@ -1,4 +1,4 @@
-export class ChracterDto {
+export interface IChracter {
   birth_year: string;
   eye_color: string;
   gender: string;

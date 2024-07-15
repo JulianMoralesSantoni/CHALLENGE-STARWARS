@@ -1,11 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, arrayMinSize, IsNumber, IsString, ValidateNested } from 'class-validator';
-import { Chracter } from 'src/entities/Chracter.entity';
-import { Starship } from 'src/entities/starship.entity';
-import { Vehicle } from 'src/entities/vehicle.entity';
-import { Specie } from 'src/entities/specie.entity';
-import { Planet } from 'src/entities/planet.entity';
+import { Chracter } from '../../entities/chracter.entity';
+import { Starship } from '../../entities/starship.entity';
+import { Vehicle } from '../../entities/vehicle.entity';
+import { Specie } from '../../entities/specie.entity';
+import { Planet } from '../../entities/planet.entity';
+import { ArticleType } from 'src/entities/articleType.entity';
+import { Season } from 'src/entities/season.entity';
+import { Genre } from 'src/entities/genre.entity';
+import { IsString, IsNumber, IsOptional, ValidateNested, ArrayMinSize } from 'class-validator';
 
 export class CreateFilmDto {
   @ApiProperty()
@@ -33,18 +36,21 @@ export class CreateFilmDto {
   release_date: string;
 
   @ApiProperty()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => Chracter)
   @ArrayMinSize(1)
   chracters: Chracter[];
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => Planet)
   @ArrayMinSize(1)
   planets: Planet[];
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => Starship)
   @ArrayMinSize(1)
@@ -56,7 +62,8 @@ export class CreateFilmDto {
   @ArrayMinSize(1)
   vehicles: Vehicle[];
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => Specie)
   @ArrayMinSize(1)
@@ -65,4 +72,23 @@ export class CreateFilmDto {
   @ApiProperty()
   @IsString()
   url: string;
+
+  @ApiProperty()
+  @ValidateNested()
+  @Type(() => ArticleType)
+  articleType: ArticleType;
+
+  @ApiProperty()
+  @IsOptional()
+  @ValidateNested()
+  @ArrayMinSize(1)
+  @Type(() => Season)
+  season: Season;
+
+  @ApiProperty()
+  @IsOptional()
+  @ValidateNested()
+  @ArrayMinSize(1)
+  @Type(() => Genre)
+  genre: Genre[];
 }

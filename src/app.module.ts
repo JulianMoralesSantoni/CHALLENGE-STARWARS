@@ -25,7 +25,10 @@ import { FilmModule } from './film/film.module';
         autoLoadEntities: true,
         synchronize: false,
       }),
-    }), UserModule, AuthModule, FilmModule
+    }),
+    UserModule,
+    AuthModule,
+    FilmModule,
   ],
   controllers: [AppController],
   providers: [AppService],

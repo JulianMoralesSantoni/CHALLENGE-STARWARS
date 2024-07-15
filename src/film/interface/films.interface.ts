@@ -1,4 +1,5 @@
-export interface Films {
+export interface IFilm {
+  id_article: number;
   title: string;
   episode_id: number;
   opening_crawl: string;

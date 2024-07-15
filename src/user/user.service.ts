@@ -3,12 +3,10 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { Repository } from 'typeorm';
-import { User } from 'src/entities/user.entity';
+import { User } from '../entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
@@ -19,14 +17,18 @@ export class UserService {
   ) {}
   async create(createUserDto: CreateUserDto) {
     let userCreated = new User();
-    let errorSearch = '';
+    const errorSearch = '';
     try {
       const users = await this.findUserByEmail(createUserDto.user_email);
-      const userFound = users.find((user) => user.user_email == createUserDto.user_email)
+      const userFound = users.find(
+        (user) => user.user_email == createUserDto.user_email,
+      );
       console.log(userFound);
-      
+
       if (userFound) {
-        throw new BadRequestException(`Ya existe un usuario con email ${userFound.user_email}`);
+        throw new BadRequestException(
+          `Ya existe un usuario con email ${userFound.user_email}`,
+        );
       }
       userCreated = this.userRepositorio.create(createUserDto);
       userCreated = await this.userRepositorio.save(userCreated);
@@ -48,17 +50,19 @@ export class UserService {
   async findUserByEmail(email: string) {
     const user = await this.userRepositorio.find({
       relations: {
-          userType: true,
+        userType: true,
       },
       where: {
-          user_email: email
+        user_email: email,
       },
-  })
+    });
     return user;
   }
 
   async findAll() {
-    const users = await this.userRepositorio.find({relations:{userType:true}})
+    const users = await this.userRepositorio.find({
+      relations: { userType: true },
+    });
     console.log('Estos son los users');
     console.log(users);
     return users;
@@ -68,7 +72,7 @@ export class UserService {
     return `This action returns a #${id} user`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  update(id: number) {
     return `This action updates a #${id} user`;
   }
 
