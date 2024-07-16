@@ -22,19 +22,19 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+# Description
 
-This application aims to manage movies and series. It is also integrated into the STAR WARS API with which it synchronizes your movies. Por favor, leer las advertencias y soporte.
+This application aims to manage movies and series. It is also integrated into the STAR WARS API with which it synchronizes your movies. Please read the warnings and support.
 
-## Installation
+# Installation
 
 ```bash
 $ npm install
 ```
 
-## Create environment
+# Create environment
 
-# Create archive .env with next variable
+## Create environment .env with next variable
 
 These variables have the values ​​for my local environment except for the 'APISTARWARS_FILMS' variable. This last variable is mandatory to be able to synchronize.
 
@@ -50,19 +50,19 @@ APISTARWARS_FILMS=https://swapi.dev/api/films
 
 ```
 
-# Import data base
+## Import data base
 
 At the root of the repository there is a folder named 'bd_challenge'. This folder contains the MySQL database with the corresponding structure and data to be able to test the model. You will need to import it from MySQL Workbench or your preferred database manager.
 
-## Running the app
+# Running the app
 
-# development
+## development
 $ npm run start
 
 # watch mode
 $ npm run start:dev
 
-## Swagger Documentation
+# Swagger Documentation
 
 When the project is running, you can view the documentation with the following link.
 
@@ -71,12 +71,12 @@ When the project is running, you can view the documentation with the following l
 http://localhost:8080/api
 
 ```
-## Support
+# Support
 
 The postman collection used to test the endpoints is attached to the project root. That name is 
 'Challenge Conexa.postman_collection'
 
-## WARNIG
+# WARNIG
 
 When the last tests were carried out, last-minute failures occurred. Among them, failure in data validation (decorators) and lack of memory in the heap when some enpoints are executed.
 It is recommended to test synchronization at the end.
