@@ -76,7 +76,7 @@ http://localhost:8080/api
 The postman collection used to test the endpoints is attached to the project root. That name is 
 'Challenge Conexa.postman_collection'
 
-# WARNIG
+# Warnings
 
 When the last tests were carried out, last-minute failures occurred. Among them, failure in data validation (decorators) and lack of memory in the heap when some enpoints are executed.
 It is recommended to test synchronization at the end.
