@@ -3,11 +3,13 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ErrorManager } from 'src/utils/throwError';
 
 @Injectable()
 export class UserService {
@@ -25,7 +27,7 @@ export class UserService {
       );
       console.log(userFound);
 
-      if (userFound) {
+      if (!userFound) {
         throw new BadRequestException(
           `Ya existe un usuario con email ${userFound.user_email}`,
         );
@@ -33,39 +35,45 @@ export class UserService {
       userCreated = this.userRepositorio.create(createUserDto);
       userCreated = await this.userRepositorio.save(userCreated);
     } catch (error) {
-      throw new HttpException(
-        {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          error: errorSearch ? errorSearch : error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        {
-          cause: error.message,
-        },
-      );
+      throw new InternalServerErrorException('Ocurrio un error, no se pudo crear el Usuario');
     }
     return userCreated;
   }
 
   async findUserByEmail(email: string) {
-    const user = await this.userRepositorio.find({
-      relations: {
-        userType: true,
-      },
-      where: {
-        user_email: email,
-      },
-    });
-    return user;
+    try {
+      const user = await this.userRepositorio.find({
+        relations: {
+          userType: true,
+        },
+        where: {
+          user_email: email,
+        },
+      });
+
+      if(!user){
+        throw new BadRequestException(
+          `No existe el usuario con email: ${email}`,
+        );
+      }
+
+      return user;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Ocurrio un error, no se pudo devolver el usuario',
+      );
+    }
   }
 
   async findAll() {
-    const users = await this.userRepositorio.find({
-      relations: { userType: true },
-    });
-    console.log('Estos son los users');
-    console.log(users);
-    return users;
+    try {
+      const users = await this.userRepositorio.find({
+        relations: { userType: true },
+      });
+      return users;
+    } catch (error) {
+      ErrorManager.createSignatureError(error.message);
+    }
   }
 
   findOne(id: number) {

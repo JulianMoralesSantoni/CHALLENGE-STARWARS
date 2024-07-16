@@ -5,6 +5,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  BeforeInsert,
 } from 'typeorm';
 import { Chapter } from './chapter.entity';
 import { Article } from './article.entity';
@@ -45,6 +46,7 @@ export class Season {
   @JoinColumn({ name: 'id_article' })
   article: Article;
 
+  @ApiProperty()
   @OneToMany(() => Chapter, (chapter) => chapter.season, { cascade: true })
   chapters: Chapter[];
 
@@ -59,9 +61,17 @@ export class Season {
   @Column({ nullable: true })
   poster_url: string;
 
-  @Column({ name: 'created', type: 'datetime' })
+  @Column({ name: 'created', type: 'datetime', nullable: true  })
   created: Date;
 
-  @Column({ name: 'updated', type: 'datetime' })
+  @Column({ name: 'updated', type: 'datetime', nullable: true })
   updated: Date;
+
+  @BeforeInsert()
+  updateDates() {
+    this.created = new Date();
+  }
+
 }
+
+

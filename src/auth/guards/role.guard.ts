@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+  HttpStatus,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Observable } from 'rxjs';
@@ -21,6 +27,10 @@ export class RolesGuard implements CanActivate {
     const payload = this.jwtService.decode(token) as any;
     const roles = this.reflector.get<string[]>('roles', context.getHandler());
 
-    return roles.includes(payload.userType);
+    if (!roles.includes(payload.userType)) {
+      throw new UnauthorizedException('No tienes acceso a este recurso');
+    } else {
+      return roles.includes(payload.userType);
+    }
   }
 }

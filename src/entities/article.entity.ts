@@ -122,8 +122,4 @@ export class Article {
     this.created = new Date();
   }
 
-  @BeforeUpdate()
-  updateDates() {
-    this.edited = new Date();
-  }
 }

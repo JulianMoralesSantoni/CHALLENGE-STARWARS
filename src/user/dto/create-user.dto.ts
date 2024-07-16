@@ -14,6 +14,9 @@ export class CreateUserDto {
   @IsString()
   user_name: string;
   @ApiProperty()
+  @IsString()
+  password: string;
+  @ApiProperty()
   @ValidateNested()
   @Type(() => UserType)
   userType: UserType;

@@ -83,7 +83,7 @@ export class CreateFilmDto {
   @ValidateNested()
   @ArrayMinSize(1)
   @Type(() => Season)
-  season: Season;
+  season: Season[];
 
   @ApiProperty()
   @IsOptional()

@@ -1,8 +1,7 @@
 import {
-  HttpException,
-  HttpStatus,
+  BadRequestException,
   Injectable,
-  NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { CreateFilmDto } from './dto/create-film.dto';
 import { UpdateFilmDto } from './dto/update-film.dto';
@@ -24,11 +23,9 @@ import { Vehicle } from '../entities/vehicle.entity';
 import { ArticleVehicle } from '../entities/articleVehicle.entity';
 import { ErrorDto } from '../utils/errorDto';
 import { ApiResponseData } from './interface/apiResponseDataFilms.interface';
-import { ApiResponseMetaData } from './interface/apiResponseMetaData.interface';
-import { UrlMetaData } from './interface/interfaceUrl.interface';
 import { plainToClass } from '@nestjs/class-transformer';
 import { IFilm } from './interface/films.interface';
-import { Genre } from 'src/entities/genre.entity';
+import { ReportDto } from './dto/report.dto';
 
 @Injectable()
 export class FilmService {
@@ -42,28 +39,25 @@ export class FilmService {
   ) {}
 
   async create(createFilmDto: CreateFilmDto, sincronizated?: boolean) {
-    const report = {
-      created: [],
-      updated: [],
-      errors: [],
-    };
+    const report: ReportDto = new ReportDto();
     const { chracters, species, vehicles, planets, starships, ...restOfDto } =
       createFilmDto;
 
     let FilmCreated = new Article();
     try {
-      const episodeId = await this.filmRepository.findOne({
-        where: {
-          episode_id: createFilmDto.episode_id,
-        },
-      });
+      if (!createFilmDto.season) {
+        const episodeId = await this.filmRepository.findOne({
+          where: {
+            episode_id: createFilmDto.episode_id,
+          },
+        });
 
-      if (episodeId)
-        throw new ErrorDto(
-          '400',
-          `Ya existe una pelicula correpondiente al episodio ${createFilmDto.episode_id}`,
-        );
-
+        if (episodeId) {
+          throw new BadRequestException(
+            `Ya existe una pelicula con episode ${episodeId.episode_id}`,
+          );
+        }
+      }
       const filmToCreate = this.filmRepository.create(restOfDto);
       filmToCreate.article_chracters = [];
 
@@ -152,7 +146,7 @@ export class FilmService {
           message: error.message,
         });
       }
-      return new ErrorDto(error.status, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -168,9 +162,8 @@ export class FilmService {
 
       return films.results;
     } catch (error) {
-      throw new ErrorDto(
-        '500',
-        'Ocurrio un error al comunicarse con la api de Starwars',
+      throw new InternalServerErrorException(
+        'Ocurrio un error al comunicarse con la api de STAR WARS',
       );
     }
   }
@@ -179,11 +172,7 @@ export class FilmService {
     let page = 1;
     let allData: IFilm[] = [];
     let hasMoreData = true;
-    const report = {
-      created: [],
-      updated: [],
-      errors: [],
-    };
+    const report: ReportDto = new ReportDto();
     try {
       while (hasMoreData) {
         const films = (
@@ -202,8 +191,6 @@ export class FilmService {
 
       const filmsInDataBase = await this.filmRepository.find();
 
-      
-
       const filmsToCreate: IFilm[] = [];
       const filmsToUpdate: IFilm[] = [];
 
@@ -211,7 +198,7 @@ export class FilmService {
         const article = filmsInDataBase.find(
           (movie) => movie.episode_id === iterator.episode_id,
         );
-      
+
         if (article) {
           iterator.id_article = article.id_article;
           filmsToUpdate.push(iterator);
@@ -219,8 +206,6 @@ export class FilmService {
           filmsToCreate.push(iterator);
         }
       }
-
-
 
       for (const iterator of filmsToCreate) {
         const { characters, planets, starships, species, vehicles } = iterator;
@@ -262,9 +247,8 @@ export class FilmService {
 
       return report;
     } catch (error) {
-      throw new ErrorDto(
-        '500',
-        'Ocurrio un error al comunicarse con la api de Starwars',
+      throw new InternalServerErrorException(
+        'Ocurrio un error en la sincronización',
       );
     }
   }
@@ -319,109 +303,63 @@ export class FilmService {
     return planets;
   }
 
-  async chracterSincronization() {
-    let page = 1;
-    let allData: UrlMetaData[] = [];
-    const urls = [];
-    let hasMoreData = true;
-    try {
-      while (hasMoreData) {
-        const films = (
-          await lastValueFrom(
-            this.httpService.get<ApiResponseMetaData>(
-              `${this.configService.get('APISTARWARS_FILMS')}?page=${page}`,
-            ),
-          )
-        ).data;
-
-        allData = [...allData, ...films.results];
-        hasMoreData = !!films.next;
-
-        page++;
-      }
-
-      for (const iterator of allData) {
-        urls.push(iterator.url);
-      }
-
-      return allData;
-    } catch (error) {
-      throw new ErrorDto(
-        '500',
-        'Ocurrio un error al comunicarse con la api de Starwars',
-      );
-    }
-  }
-
   async getChracterAPI(url: string) {
-    console.log('Esta es la url');
-
-    console.log(url);
-
     return await lastValueFrom(this.httpService.get(url));
   }
-
-  // async sincronization() {
-  //   const allFilms = await this.findAllApiIntegration();
-  //   for (const iterator of allFilms) {
-  //     const filmToBrowse = await this.filmRepository.findOne({
-  //       where: {
-  //         episode_id: iterator.episode_id,
-  //       },
-  //     });
-
-  //     if (filmToBrowse) {
-  //       const { characters, planets, species, vehicles, starships } = iterator;
-
-  //       const updateFilmDto = new UpdateFilmDto();
-
-  //       updateFilmDto.id_film = filmToBrowse.id_film;
-
-  //       updateFilmDto.title = iterator.title;
-  //       updateFilmDto.episode_id = iterator.episode_id;
-  //       updateFilmDto.opening_crawl = iterator.opening_crawl;
-  //       updateFilmDto.director = iterator.director;
-  //       updateFilmDto.producer = iterator.producer;
-  //       updateFilmDto.release_date = iterator.release_date;
-  //       updateFilmDto.url = iterator.url;
-
-  //       const objects = await this.packaging(characters, planets, species, vehicles, starships)
-  //     } else {
-  //     }
-  //   }
-  //   return allFilms;
-  // }
-
-  // async packaging(characters:string[], planets:string[], species:string[], vehicles:string[], starships:string[]) {
-  //   let newCharacters: Chracter[] = []
-  //   characters.forEach((chracter)=>{
-  //     newCharacters.push
-  //   } )
-  // }
 
   async findAllToDataBase() {
     try {
       const film = await this.filmRepository
-        .createQueryBuilder('film')
+        .createQueryBuilder('article')
         .select([
-          'film.id_film',
-          'film.title',
-          'film.episode_id',
-          'film.opening_crawl',
-          'film.director',
-          'film.producer',
-          'film.release_date',
-          'film.created',
-          'film.edited',
-          'film.url',
-          'film.end_date',
+          'article.id_article',
+          'article.title',
+          'article.episode_id',
+          'article.opening_crawl',
+          'article.director',
+          'article.producer',
+          'article.release_date',
+          'article.created',
+          'article.edited',
+          'article.url',
+          'article.end_date',
         ])
-        .where('film.end_date IS NULL')
+        .addSelect([
+          'season.id_season',
+          'season.season_number',
+          'season.title',
+          'season.description',
+          'season.release_date',
+          'season.end_date',
+          'season.number_of_episodes',
+          'season.poster_url',
+          'season.created',
+          'season.updated',
+        ])
+        .addSelect([
+          'chapter.id_chapter',
+          'chapter.title',
+          'chapter.description',
+          'chapter.episode_number',
+          'chapter.release_date',
+          'chapter.duration',
+          'chapter.streaming_url',
+          'chapter.rating',
+          'chapter.created',
+          'chapter.updated',
+        ])
+        .addSelect(['genre.id_genre', 'genre.genre_name'])
+        .leftJoin('article.seasons', 'season')
+        .leftJoin('season.chapters', 'chapter')
+        .leftJoin('article.genre', 'genre')
+        .where('article.end_date IS NULL')
         .getMany();
 
       return film;
     } catch (error) {
-      return new ErrorDto(error.status, error.message);
+      return new InternalServerErrorException(
+        'Ocurrio un error, no se puede consultar la lista de articulos',
+      );
     }
   }
 
@@ -436,12 +374,23 @@ export class FilmService {
       ).data;
       return films;
     } catch (error) {
-      return new ErrorDto(error.status, error.message);
+      throw new InternalServerErrorException(
+        'Ocurrio un error, no se pudo conectar con la apiStarWars',
+      );
     }
   }
 
   async findOneToDataBase(id: number, update?: boolean) {
-    let articleFinal;
+    const articleExist = await this.filmRepository.findOne({
+      where: {
+        id_article: id,
+      },
+    });
+
+    if (!articleExist) {
+      throw new BadRequestException(`No existe el articulo con Id = ${id}`);
+    }
+
     try {
       const article = await this.filmRepository
         .createQueryBuilder('article')
@@ -592,25 +541,14 @@ export class FilmService {
 
       return await article.getOne();
     } catch (error) {
-      throw new HttpException(
-        {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        {
-          cause: error.message,
-        },
+      throw new InternalServerErrorException(
+        'Ocurrio un error, no se pudo devolver la información del articulo',
       );
     }
   }
 
   async update(updateFilmDto: UpdateFilmDto, sincronizated?: boolean) {
-    const report = {
-      created: [],
-      updated: [],
-      errors: [],
-    };
+    const report: ReportDto = new ReportDto();
 
     try {
       const {
@@ -629,16 +567,11 @@ export class FilmService {
       );
 
       if (!articleToBrowse)
-        throw new ErrorDto(
-          '400',
+        throw new BadRequestException(
           `No existe una pelicula correpondiente al siguiente id: ${updateFilmDto.id_article}`,
         );
 
       const articleToUpdate = this.filmRepository.create(articleToBrowse);
-
-      console.log('Este el articleToUpdate');
-
-      console.log(articleToUpdate);
 
       articleToUpdate.articleType = restOfDto.articleType;
       articleToUpdate.director = restOfDto.director;
@@ -649,6 +582,7 @@ export class FilmService {
       articleToUpdate.seasons = restOfDto.season;
       articleToUpdate.title = restOfDto.title;
       articleToUpdate.url = restOfDto.url;
+      articleToUpdate.edited = new Date()
 
       //Tratamiento de chracters
 
@@ -700,9 +634,6 @@ export class FilmService {
           });
         }
       }
-      console.log('Estos son los objetos');
-
-      console.log(articleToUpdate.article_chracters);
 
       //Tratamiento de planet
 
@@ -879,6 +810,7 @@ export class FilmService {
         }
       }
 
+
       await this.entityManager.transaction(
         async (transactionalEntityManager) => {
           await transactionalEntityManager.save(articleToUpdate);
@@ -902,7 +834,11 @@ export class FilmService {
           message: error.message,
         });
       }
-      return new ErrorDto(error.status, error.message);
+      console.log(error.message);
+      
+      throw new InternalServerErrorException(
+        'No se pudo actualizar el articulo',
+      );
     }
   }
 
@@ -917,13 +853,12 @@ export class FilmService {
         },
       });
       if (!filmToDelete)
-        throw new NotFoundException(
-          `No existe la ${filmToDelete.articleType.article_type_name} con ${id_article}`,
+        throw new BadRequestException(
+          `No existe el articulo con id = ${id_article}`,
         );
       if (filmToDelete.end_date)
-        throw new ErrorDto(
-          '400',
-          `La ${filmToDelete.articleType.article_type_name} ya se encuentra dada de baja`,
+        throw new BadRequestException(
+          `El articulo ya se encuentra dado de baja`,
         );
 
       filmToDelete.end_date = new Date();
@@ -933,9 +868,11 @@ export class FilmService {
         },
       );
 
-      return `Se borro la ${filmToDelete.articleType.article_type_name} ${filmToDelete.id_article}`;
+      return `Se borro ${filmToDelete.title}`;
     } catch (error) {
-      return new ErrorDto(error.status, error.message);
+      return new InternalServerErrorException(
+        'Ocurrio un error, no pudo borrar el articulo',
+      );
     }
   }
 }

@@ -24,7 +24,7 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This application aims to manage movies and series. It is also integrated into the STAR WARS API with which it synchronizes your movies. Por favor, leer las advertencias y soporte.
 
 ## Installation
 
@@ -32,42 +32,52 @@
 $ npm install
 ```
 
-## Running the app
+## Create environment
+
+# Create archive .env with next variable
+
+These variables have the values ​​for my local environment except for the 'APISTARWARS_FILMS' variable. This last variable is mandatory to be able to synchronize.
 
 ```bash
+
+DATABASE_USERNAME=root
+DATABASE_PASSWORD=admin
+DATABASE_NAME=bd_challenge
+DATABASE_PORT=3306
+DATABASE_HOST=localhost
+HOST=8080
+APISTARWARS_FILMS=https://swapi.dev/api/films
+
+```
+
+# Import data base
+
+At the root of the repository there is a folder named 'bd_challenge'. This folder contains the MySQL database with the corresponding structure and data to be able to test the model. You will need to import it from MySQL Workbench or your preferred database manager.
+
+## Running the app
+
 # development
 $ npm run start
 
 # watch mode
 $ npm run start:dev
 
-# production mode
-$ npm run start:prod
-```
+## Swagger Documentation
 
-## Test
+When the project is running, you can view the documentation with the following link.
 
 ```bash
-# unit tests
-$ npm run test
 
-# e2e tests
-$ npm run test:e2e
+http://localhost:8080/api
 
-# test coverage
-$ npm run test:cov
 ```
-
 ## Support
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+The postman collection used to test the endpoints is attached to the project root. That name is 
+'Challenge Conexa.postman_collection'
 
-## Stay in touch
+## WARNIG
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+When the last tests were carried out, last-minute failures occurred. Among them, failure in data validation (decorators) and lack of memory in the heap when some enpoints are executed.
+It is recommended to test synchronization at the end.
 
-## License
-
-Nest is [MIT licensed](LICENSE).
